@@ -1,0 +1,215 @@
+import mysql.connector
+from datetime import datetime
+
+conexion = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="1234",
+    database="ionics"
+)
+
+cursor = conexion.cursor()
+
+def registrar_empleado():
+    nombre = input("Ingrese el nombre: ")
+    apellido = input("Ingrese el apellido: ")
+    dpi = input("Ingrese el DPI: ")
+    telefono = input("Ingrese el telefono: ")
+    cargo = input("Ingrese el cargo: ")
+
+    fecha = datetime.now().date()
+
+    sql = """INSERT INTO Empleados
+    (nombre, apellido, dpi, telefono, cargo, fechaIngreso, estado)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+
+    datos = (nombre, apellido, dpi, telefono, cargo, fecha, "Activo")
+
+    cursor.execute(sql, datos)
+    conexion.commit()
+
+    print("Empleado registrado correctamente.")
+
+
+def mostrar_empleados():
+    cursor.execute("SELECT * FROM Empleados")
+    empleados = cursor.fetchall()
+
+    print("\n===== EMPLEADOS =====")
+
+    for empleado in empleados:
+        print("ID:", empleado[0])
+        print("Nombre:", empleado[1], empleado[2])
+        print("DPI:", empleado[3])
+        print("Telefono:", empleado[4])
+        print("Cargo:", empleado[5])
+        print("Fecha de ingreso:", empleado[6])
+        print("Estado:", empleado[7])
+        print("------------------------")
+
+
+def actualizar_empleado():
+    idEmpleado = input("Ingrese el ID del empleado: ")
+
+    nombre = input("Ingrese el nuevo nombre: ")
+    apellido = input("Ingrese el nuevo apellido: ")
+    dpi = input("Ingrese el nuevo DPI: ")
+    telefono = input("Ingrese el nuevo telefono: ")
+    cargo = input("Ingrese el nuevo cargo: ")
+
+    sql = """UPDATE Empleados
+    SET nombre=%s, apellido=%s, dpi=%s,
+    telefono=%s, cargo=%s
+    WHERE idEmpleado=%s"""
+
+    datos = (nombre, apellido, dpi, telefono, cargo, idEmpleado)
+
+    cursor.execute(sql, datos)
+    conexion.commit()
+
+    print("Empleado actualizado correctamente.")
+
+
+def eliminar_empleado():
+    idEmpleado = input("Ingrese el ID del empleado: ")
+
+    sql = "DELETE FROM Empleados WHERE idEmpleado=%s"
+
+    cursor.execute(sql, (idEmpleado,))
+    conexion.commit()
+
+    print("Empleado eliminado correctamente.")
+
+
+def registrar_entrada():
+    idEmpleado = input("Ingrese el ID del empleado: ")
+
+    fecha = datetime.now().date()
+    hora = datetime.now().time()
+
+    sql = """SELECT * FROM Asistencia
+    WHERE idEmpleado=%s AND fecha=%s"""
+
+    cursor.execute(sql, (idEmpleado, fecha))
+
+    registro = cursor.fetchone()
+
+    if registro:
+        print("Este empleado ya tiene una asistencia registrada hoy.")
+        return
+
+    if hora.hour >= 8:
+        estado = "Atrasado"
+    else:
+        estado = "Presente"
+
+    sql = """INSERT INTO Asistencia
+    (idEmpleado, fecha, horaEntrada, estado, observacion)
+    VALUES (%s, %s, %s, %s, %s)"""
+
+    datos = (idEmpleado, fecha, hora, estado, "")
+
+    cursor.execute(sql, datos)
+    conexion.commit()
+
+    print("Entrada registrada correctamente.")
+    print("Hora:", hora)
+    print("Estado:", estado)
+
+
+def registrar_salida():
+    idEmpleado = input("Ingrese el ID del empleado: ")
+
+    fecha = datetime.now().date()
+    hora = datetime.now().time()
+
+    sql = """UPDATE Asistencia
+    SET horaSalida=%s
+    WHERE idEmpleado=%s AND fecha=%s"""
+
+    cursor.execute(sql, (hora, idEmpleado, fecha))
+    conexion.commit()
+
+    if cursor.rowcount > 0:
+        print("Salida registrada correctamente.")
+        print("Hora:", hora)
+    else:
+        print("No se encontro una entrada registrada para este empleado hoy.")
+
+
+def mostrar_asistencia():
+    sql = """SELECT
+    Asistencia.idAsistencia,
+    Empleados.nombre,
+    Empleados.apellido,
+    Asistencia.fecha,
+    Asistencia.horaEntrada,
+    Asistencia.horaSalida,
+    Asistencia.estado,
+    Asistencia.observacion
+    FROM Asistencia
+    INNER JOIN Empleados
+    ON Asistencia.idEmpleado = Empleados.idEmpleado"""
+
+    cursor.execute(sql)
+
+    registros = cursor.fetchall()
+
+    print("\n===== REGISTRO DE ASISTENCIA =====")
+
+    for registro in registros:
+        print("ID asistencia:", registro[0])
+        print("Empleado:", registro[1], registro[2])
+        print("Fecha:", registro[3])
+        print("Entrada:", registro[4])
+        print("Salida:", registro[5])
+        print("Estado:", registro[6])
+        print("Observacion:", registro[7])
+        print("------------------------")
+
+
+while True:
+    print("\n==========================")
+    print("         IONIC'S")
+    print("==========================")
+    print("1. Registrar empleado")
+    print("2. Mostrar empleados")
+    print("3. Actualizar empleado")
+    print("4. Eliminar empleado")
+    print("5. Registrar entrada")
+    print("6. Registrar salida")
+    print("7. Mostrar asistencia")
+    print("8. Salir")
+
+    opcion = input("Ingrese una opcion: ")
+
+    if opcion == "1":
+        registrar_empleado()
+
+    elif opcion == "2":
+        mostrar_empleados()
+
+    elif opcion == "3":
+        actualizar_empleado()
+
+    elif opcion == "4":
+        eliminar_empleado()
+
+    elif opcion == "5":
+        registrar_entrada()
+
+    elif opcion == "6":
+        registrar_salida()
+
+    elif opcion == "7":
+        mostrar_asistencia()
+
+    elif opcion == "8":
+        print("Programa finalizado.")
+        break
+
+    else:
+        print("Opcion no valida.")
+
+cursor.close()
+conexion.close()
